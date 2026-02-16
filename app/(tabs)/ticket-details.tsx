@@ -13,6 +13,28 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 export default function TicketDetailsScreen() {
     const router = useRouter();
 
+    // UI-only barcode (not scannable), but visually close to a real barcode.
+    const barcodeValue = '40181700982';
+
+    const bars = [
+        // left guard / quiet zone
+        { w: 2, gap: 2 },
+        { w: 2, gap: 1 },
+        { w: 1, gap: 2 },
+        // dense body (hand-crafted pattern)
+        { w: 3, gap: 1 }, { w: 1, gap: 1 }, { w: 1, gap: 2 }, { w: 2, gap: 1 }, { w: 1, gap: 1 },
+        { w: 4, gap: 1 }, { w: 1, gap: 2 }, { w: 2, gap: 1 }, { w: 1, gap: 1 }, { w: 3, gap: 1 },
+        { w: 1, gap: 1 }, { w: 2, gap: 2 }, { w: 1, gap: 1 }, { w: 5, gap: 1 }, { w: 1, gap: 2 },
+        { w: 2, gap: 1 }, { w: 1, gap: 1 }, { w: 3, gap: 1 }, { w: 1, gap: 2 }, { w: 2, gap: 1 },
+        { w: 1, gap: 1 }, { w: 4, gap: 1 }, { w: 1, gap: 2 }, { w: 2, gap: 1 }, { w: 1, gap: 1 },
+        { w: 3, gap: 1 }, { w: 1, gap: 1 }, { w: 2, gap: 2 }, { w: 1, gap: 1 }, { w: 5, gap: 1 },
+        { w: 1, gap: 2 }, { w: 2, gap: 1 }, { w: 1, gap: 1 }, { w: 3, gap: 1 }, { w: 1, gap: 2 },
+        { w: 2, gap: 1 }, { w: 1, gap: 1 }, { w: 4, gap: 1 }, { w: 1, gap: 2 }, { w: 2, gap: 1 },
+        { w: 1, gap: 1 }, { w: 3, gap: 1 }, { w: 1, gap: 2 }, { w: 6, gap: 1 },
+        // right guard
+        { w: 2, gap: 2 }, { w: 2, gap: 0 },
+    ] as const;
+
     const handleDownload = () => {
         alert('Ticket Downloaded!');
     };
@@ -112,8 +134,27 @@ export default function TicketDetailsScreen() {
 
                     {/* Barcode Placeholder */}
                     <View style={styles.barcodeContainer}>
-                        {/* Start simple with a view representing barcode, or bars */}
-                        <View style={styles.barcode} />
+                        <View style={styles.barcodeCard}>
+                            <View style={styles.barcode}>
+                                {/* quiet zone left */}
+                                <View style={{ width: 10 }} />
+                                {bars.map((b, idx) => (
+                                    <View
+                                        key={idx}
+                                        style={[
+                                            styles.bar,
+                                            {
+                                                width: b.w,
+                                                marginRight: b.gap,
+                                            },
+                                        ]}
+                                    />
+                                ))}
+                                {/* quiet zone right */}
+                                <View style={{ width: 10 }} />
+                            </View>
+                            <Text style={styles.barcodeText}>{barcodeValue.split('').join(' ')}</Text>
+                        </View>
                     </View>
                 </View>
 
@@ -291,14 +332,38 @@ const styles = StyleSheet.create({
     barcodeContainer: {
         marginTop: 20,
         alignItems: 'center',
-        height: 60,
+        height: 90,
         justifyContent: 'center',
+    },
+    barcodeCard: {
+        width: '100%',
+        backgroundColor: '#FFF',
+        // borderWidth: 1,
+        borderColor: '#E6E6E6',
+        borderRadius: 12,
+        paddingTop: 10,
+        paddingBottom: 8,
+        paddingHorizontal: 10,
     },
     barcode: {
         width: '100%',
-        height: 50,
-        backgroundColor: '#333', // Placeholder color, usually vertical bars
-        opacity: 0.1 // Just to look like something
+        height: 44,
+        flexDirection: 'row',
+        alignItems: 'stretch',
+        justifyContent: 'center',
+    },
+    bar: {
+        backgroundColor: '#0B0B0B',
+        borderRadius: 0,
+        height: '100%',
+    },
+    barcodeText: {
+        marginTop: 6,
+        textAlign: 'center',
+        color: '#111',
+        fontSize: 18,
+        letterSpacing: 2,
+        fontWeight: '700',
     },
     footer: {
         position: 'absolute',

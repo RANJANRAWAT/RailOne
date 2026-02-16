@@ -44,7 +44,11 @@ export default function SeatSelectionScreen() {
     };
 
     const handleContinue = () => {
-        router.push('/passenger-details');
+        if (selectedSeats.length === 0) return;
+        router.push({
+            pathname: '/passenger-details',
+            params: { seats: selectedSeats.join(',') },
+        });
     };
 
     return (
@@ -157,8 +161,13 @@ export default function SeatSelectionScreen() {
             </ScrollView>
 
             <View style={styles.footer}>
-                <TouchableOpacity style={styles.button} onPress={handleContinue}>
-                    <Text style={styles.buttonText}>Select Your Seat</Text>
+                <TouchableOpacity
+                    style={[styles.button, selectedSeats.length === 0 && styles.buttonDisabled]}
+                    onPress={handleContinue}
+                    disabled={selectedSeats.length === 0}>
+                    <Text style={styles.buttonText}>
+                        Continue{selectedSeats.length ? ` (${selectedSeats.length})` : ''}
+                    </Text>
                 </TouchableOpacity>
             </View>
         </SafeAreaView>
@@ -348,6 +357,9 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    buttonDisabled: {
+        opacity: 0.5,
     },
     buttonText: {
         color: '#FFF',

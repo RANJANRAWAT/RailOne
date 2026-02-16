@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
     ScrollView,
     StyleSheet,
@@ -11,19 +11,68 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+type Passenger = {
+    name: string;
+    type: string;
+    seat?: string;
+};
+
 export default function PassengerDetailsScreen() {
     const router = useRouter();
+    const params = useLocalSearchParams<{ seats?: string }>();
 
-    const [passengerName, setPassengerName] = useState('Ranjan Rawat');
-    const [passengerType, setPassengerType] = useState('Adult');
+    const selectedSeats = useMemo(() => {
+        if (!params.seats || typeof params.seats !== 'string') return [];
+        return params.seats
+            .split(',')
+            .map(s => s.trim())
+            .filter(Boolean);
+    }, [params.seats]);
+
+    const passengerCount = Math.max(1, selectedSeats.length || 0);
+
     const [email, setEmail] = useState('ranjanrawat@gmail.com');
     const [phone, setPhone] = useState('+880 1925384071');
     const [idType, setIdType] = useState('Passport');
     const [idNumber, setIdNumber] = useState('713254896');
 
+    const [passengers, setPassengers] = useState<Passenger[]>(() =>
+        Array.from({ length: passengerCount }, (_, i) => ({
+            name: i === 0 ? 'Ranjan Rawat' : '',
+            type: 'Adult',
+            seat: selectedSeats[i],
+        }))
+    );
+
+    useEffect(() => {
+        setPassengers(prev => {
+            const next = Array.from({ length: passengerCount }, (_, i) => ({
+                name: prev[i]?.name ?? (i === 0 ? 'Ranjan Rawat' : ''),
+                type: prev[i]?.type ?? 'Adult',
+                seat: selectedSeats[i] ?? prev[i]?.seat,
+            }));
+            return next;
+        });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [passengerCount, params.seats]);
+
+    const updatePassenger = (index: number, patch: Partial<Passenger>) => {
+        setPassengers(prev => prev.map((p, i) => (i === index ? { ...p, ...patch } : p)));
+    };
 
     const handleContinue = () => {
-        router.push('/booking-details');
+        const passengersParam = encodeURIComponent(JSON.stringify(passengers));
+        router.push({
+            pathname: '/booking-details',
+            params: {
+                seats: selectedSeats.join(','),
+                passengers: passengersParam,
+                email,
+                phone,
+                idType,
+                idNumber,
+            },
+        });
     };
 
     return (
@@ -42,7 +91,9 @@ export default function PassengerDetailsScreen() {
                 <View style={styles.card}>
                     <View style={styles.cardHeader}>
                         <Text style={styles.trainName}>Jahanabad Express</Text>
-                        <Text style={styles.seatClass}>S Chair | C1, C2</Text>
+                        <Text style={styles.seatClass}>
+                            S Chair | {selectedSeats.length ? selectedSeats.join(', ') : '—'}
+                        </Text>
                     </View>
                     <View style={styles.routeRow}>
                         <View>
@@ -72,37 +123,41 @@ export default function PassengerDetailsScreen() {
 
                 {/* Passenger Details Section */}
                 <Text style={styles.sectionTitle}>Passenger Details</Text>
-                <View style={styles.formCard}>
-                    <View style={styles.tabRow}>
-                        <Text style={[styles.tabText, styles.activeTabText]}>Passenger 01</Text>
-                        <Text style={styles.tabText}>Passenger 02</Text>
-                    </View>
+                {passengers.map((p, idx) => (
+                    <View key={idx} style={styles.formCard}>
+                        <View style={styles.tabRow}>
+                            <Text style={[styles.tabText, styles.activeTabText]}>
+                                Passenger {String(idx + 1).padStart(2, '0')}
+                                {p.seat ? ` • Seat ${p.seat}` : ''}
+                            </Text>
+                        </View>
 
-                    <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Passenger Name</Text>
-                        <View style={styles.inputWrapper}>
-                            <Ionicons name="person-outline" size={20} color="#004D40" style={styles.inputIcon} />
-                            <TextInput
-                                style={styles.input}
-                                value={passengerName}
-                                onChangeText={setPassengerName}
-                            />
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>Passenger Name</Text>
+                            <View style={styles.inputWrapper}>
+                                <Ionicons name="person-outline" size={20} color="#004D40" style={styles.inputIcon} />
+                                <TextInput
+                                    style={styles.input}
+                                    value={p.name}
+                                    onChangeText={text => updatePassenger(idx, { name: text })}
+                                />
+                            </View>
+                        </View>
+
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>Passenger Type</Text>
+                            <View style={styles.inputWrapper}>
+                                <Ionicons name="people-outline" size={20} color="#004D40" style={styles.inputIcon} />
+                                <TextInput
+                                    style={styles.input}
+                                    value={p.type}
+                                    onChangeText={text => updatePassenger(idx, { type: text })}
+                                />
+                                <Ionicons name="chevron-down" size={20} color="#999" />
+                            </View>
                         </View>
                     </View>
-
-                    <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Passenger Type</Text>
-                        <View style={styles.inputWrapper}>
-                            <Ionicons name="people-outline" size={20} color="#004D40" style={styles.inputIcon} />
-                            <TextInput
-                                style={styles.input}
-                                value={passengerType}
-                                onChangeText={setPassengerType}
-                            />
-                            <Ionicons name="chevron-down" size={20} color="#999" />
-                        </View>
-                    </View>
-                </View>
+                ))}
 
                 {/* Contact Info Section */}
                 <Text style={styles.sectionTitle}>Contact Info</Text>

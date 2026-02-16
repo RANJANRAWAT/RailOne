@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
     ScrollView,
@@ -10,12 +10,55 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+type Passenger = {
+    name: string;
+    type: string;
+    seat?: string;
+};
+
 export default function BookingDetailsScreen() {
     const router = useRouter();
+    const params = useLocalSearchParams<{
+        seats?: string;
+        passengers?: string;
+        email?: string;
+        phone?: string;
+        idType?: string;
+        idNumber?: string;
+    }>();
     const [paymentMethod, setPaymentMethod] = useState('Bkash');
 
+    const seats =
+        typeof params.seats === 'string' && params.seats.trim().length
+            ? params.seats
+                  .split(',')
+                  .map(s => s.trim())
+                  .filter(Boolean)
+            : [];
+
+    const passengers: Passenger[] = (() => {
+        if (!params.passengers || typeof params.passengers !== 'string') return [];
+        try {
+            const decoded = decodeURIComponent(params.passengers);
+            const parsed = JSON.parse(decoded) as Passenger[];
+            return Array.isArray(parsed) ? parsed : [];
+        } catch {
+            return [];
+        }
+    })();
+
     const handlePayNow = () => {
-        router.push('/ticket-details');
+        router.push({
+            pathname: '/ticket-details',
+            params: {
+                seats: seats.join(','),
+                passengers: typeof params.passengers === 'string' ? params.passengers : undefined,
+                email: typeof params.email === 'string' ? params.email : undefined,
+                phone: typeof params.phone === 'string' ? params.phone : undefined,
+                idType: typeof params.idType === 'string' ? params.idType : undefined,
+                idNumber: typeof params.idNumber === 'string' ? params.idNumber : undefined,
+            },
+        });
     };
 
     return (
@@ -34,7 +77,9 @@ export default function BookingDetailsScreen() {
                 <View style={styles.card}>
                     <View style={styles.cardHeader}>
                         <Text style={styles.trainName}>Jahanabad Express</Text>
-                        <Text style={styles.seatClass}>S Chair | C1, C2</Text>
+                        <Text style={styles.seatClass}>
+                            S Chair | {seats.length ? seats.join(', ') : '—'}
+                        </Text>
                     </View>
                     <View style={styles.routeRow}>
                         <View>
@@ -65,18 +110,28 @@ export default function BookingDetailsScreen() {
                 {/* Passenger Details Summary */}
                 <Text style={styles.sectionTitle}>Passenger Details</Text>
                 <View style={styles.detailsCard}>
-                    <View style={styles.tabRow}>
-                        <Text style={[styles.tabText, styles.activeTabText]}>Passenger 01</Text>
-                        <Text style={styles.tabText}>Passenger 02</Text>
-                    </View>
-                    <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>Passenger Name</Text>
-                        <Text style={styles.detailValue}>Ranjan Rawat</Text>
-                    </View>
-                    <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>Passenger Type</Text>
-                        <Text style={styles.detailValue}>Adult</Text>
-                    </View>
+                    {passengers.length ? (
+                        passengers.map((p, idx) => (
+                            <View key={`${p.seat ?? 'seat'}-${idx}`} style={styles.passengerCard}>
+                                <View style={styles.passengerHeaderRow}>
+                                    <Text style={styles.passengerTitle}>
+                                        Passenger {String(idx + 1).padStart(2, '0')}
+                                    </Text>
+                                    <Text style={styles.passengerSeat}>{p.seat ? `Seat ${p.seat}` : ''}</Text>
+                                </View>
+                                <View style={styles.detailRow}>
+                                    <Text style={styles.detailLabel}>Passenger Name</Text>
+                                    <Text style={styles.detailValue}>{p.name || '—'}</Text>
+                                </View>
+                                <View style={styles.detailRow}>
+                                    <Text style={styles.detailLabel}>Passenger Type</Text>
+                                    <Text style={styles.detailValue}>{p.type || '—'}</Text>
+                                </View>
+                            </View>
+                        ))
+                    ) : (
+                        <Text style={styles.emptyText}>No passenger data found.</Text>
+                    )}
                 </View>
 
                 {/* Contact Info Summary */}
@@ -84,19 +139,21 @@ export default function BookingDetailsScreen() {
                 <View style={styles.detailsCard}>
                     <View style={styles.detailRow}>
                         <Text style={styles.detailLabel}>Email Address</Text>
-                        <Text style={styles.detailValue}>ranjanrawat@gmail.com</Text>
+                        <Text style={styles.detailValue}>{typeof params.email === 'string' ? params.email : '—'}</Text>
                     </View>
                     <View style={styles.detailRow}>
                         <Text style={styles.detailLabel}>Phone Number</Text>
-                        <Text style={styles.detailValue}>+880 1925384071</Text>
+                        <Text style={styles.detailValue}>{typeof params.phone === 'string' ? params.phone : '—'}</Text>
                     </View>
                     <View style={styles.detailRow}>
                         <Text style={styles.detailLabel}>Identity Type</Text>
-                        <Text style={styles.detailValue}>Passport</Text>
+                        <Text style={styles.detailValue}>{typeof params.idType === 'string' ? params.idType : '—'}</Text>
                     </View>
                     <View style={styles.detailRow}>
                         <Text style={styles.detailLabel}>Identity Number</Text>
-                        <Text style={styles.detailValue}>123456789</Text>
+                        <Text style={styles.detailValue}>
+                            {typeof params.idNumber === 'string' ? params.idNumber : '—'}
+                        </Text>
                     </View>
                 </View>
 
@@ -259,6 +316,32 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.05,
         shadowRadius: 2,
         elevation: 1,
+    },
+    passengerCard: {
+        paddingVertical: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: '#F0F0F0',
+    },
+    passengerHeaderRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 10,
+    },
+    passengerTitle: {
+        fontSize: 14,
+        color: '#004D40',
+        fontWeight: 'bold',
+    },
+    passengerSeat: {
+        fontSize: 12,
+        color: '#757575',
+        fontWeight: '600',
+    },
+    emptyText: {
+        fontSize: 13,
+        color: '#757575',
+        fontWeight: '600',
     },
     tabRow: {
         flexDirection: 'row',
