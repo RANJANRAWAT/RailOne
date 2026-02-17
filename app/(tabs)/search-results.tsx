@@ -1,8 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { useRouter } from 'expo-router';
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import {
     FlatList,
+    Platform,
+    ScrollView,
     StyleSheet,
     Text,
     TouchableOpacity,
@@ -46,19 +49,37 @@ const searchResults = [
     },
 ];
 
-const dates = [
-    { day: '09', week: 'Tue' },
-    { day: '10', week: 'Wed' },
-    { day: '11', week: 'Thu', active: true },
-    { day: '12', week: 'Fri' },
-    { day: '13', week: 'Sat' },
-];
+const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 export default function SearchResultsScreen() {
     const router = useRouter();
+    const [selectedDate, setSelectedDate] = useState(new Date());
+    const [showDatePicker, setShowDatePicker] = useState(false);
+
+    const dates = useMemo(() => {
+        const startDate = new Date(selectedDate);
+        const nextDates = [];
+        for (let i = 0; i < 14; i++) {
+            const date = new Date(startDate);
+            date.setDate(startDate.getDate() + i);
+            nextDates.push({
+                day: date.getDate().toString().padStart(2, '0'),
+                week: weekDays[date.getDay()],
+                rawDate: date,
+            });
+        }
+        return nextDates;
+    }, [selectedDate]);
 
     const handleSelectTrip = () => {
-        router.push('/seat-selection');
+        router.push('/(tabs)/seat-selection');
+    };
+
+    const onDateChange = (event: any, date?: Date) => {
+        setShowDatePicker(false);
+        if (date) {
+            setSelectedDate(date);
+        }
     };
 
     const renderItem = ({ item }: { item: typeof searchResults[0] }) => (
@@ -118,14 +139,44 @@ export default function SearchResultsScreen() {
             </View>
 
             {/* Date Check Strip */}
-            <View style={styles.dateStrip}>
-                {dates.map((d, index) => (
-                    <View key={index} style={[styles.dateItem, d.active && styles.activeDateItem]}>
-                        <Text style={[styles.dateTextDay, d.active && styles.activeDateText]}>{d.day}</Text>
-                        <Text style={[styles.dateTextWeek, d.active && styles.activeDateText]}>{d.week}</Text>
-                    </View>
-                ))}
+            <View style={styles.dateStripContainer}>
+                <View style={styles.calendarButtonContainer}>
+                    <TouchableOpacity onPress={() => setShowDatePicker(true)} style={styles.calendarButton}>
+                        <Ionicons name="calendar" size={20} color="#FFF" />
+                    </TouchableOpacity>
+                </View>
+                <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.dateStripContent}
+                    style={styles.dateStrip}
+                >
+                    {dates.map((d, index) => {
+                        const isActive = d.rawDate.toDateString() === selectedDate.toDateString();
+                        return (
+                            <TouchableOpacity
+                                key={index}
+                                style={[styles.dateItem, isActive && styles.activeDateItem]}
+                                onPress={() => setSelectedDate(d.rawDate)}
+                            >
+                                <Text style={[styles.dateTextDay, isActive && styles.activeDateText]}>{d.day}</Text>
+                                <Text style={[styles.dateTextWeek, isActive && styles.activeDateText]}>{d.week}</Text>
+                            </TouchableOpacity>
+                        );
+                    })}
+                </ScrollView>
+
             </View>
+
+            {showDatePicker && (
+                <DateTimePicker
+                    value={selectedDate}
+                    mode="date"
+                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                    onChange={onDateChange}
+                    minimumDate={new Date()}
+                />
+            )}
 
 
 
@@ -192,18 +243,43 @@ const styles = StyleSheet.create({
         color: '#757575',
         fontSize: 12,
     },
-    dateStrip: {
+    dateStripContainer: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
-        paddingHorizontal: 20,
+        alignItems: 'center',
         marginBottom: 20,
+        paddingLeft: 20, // Padding for the calendar button, dateStrip has its own padding
+    },
+    calendarButtonContainer: {
+        marginRight: 10,
+    },
+    calendarButton: {
+        backgroundColor: '#004D40',
+        padding: 10,
+        borderRadius: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: 40,
+        height: 40,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 2,
+        elevation: 1,
+    },
+    dateStrip: {
+        // marginBottom: 20, // Moved to container
+        flex: 1,
+    },
+    dateStripContent: {
+        paddingRight: 20, // Add padding at the end of the list
     },
     dateItem: {
         backgroundColor: '#FFF',
         padding: 10,
         borderRadius: 12,
         alignItems: 'center',
-        width: 50,
+        width: 60,
+        marginRight: 10,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.05,

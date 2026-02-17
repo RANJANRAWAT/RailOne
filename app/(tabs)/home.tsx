@@ -1,14 +1,17 @@
 import { Ionicons } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
   Image,
+  Modal,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -17,8 +20,45 @@ export default function HomeScreen() {
   const [tripType, setTripType] = useState('One Way');
   const [fromLocation, setFromLocation] = useState('Gaya (GAY)');
   const [toLocation, setToLocation] = useState('Delhi (DEL)');
-  const [departureDate, setDepartureDate] = useState('11 September, 2025');
+
+  const [departureDate, setDepartureDate] = useState(new Date());
+  const [returnDate, setReturnDate] = useState(new Date(new Date().setDate(new Date().getDate() + 2))); // Default +2 days
+
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [datePickerMode, setDatePickerMode] = useState<'departure' | 'return'>('departure');
+
   const [travelClass, setTravelClass] = useState('S Chair');
+  const [showClassPicker, setShowClassPicker] = useState(false);
+
+  const TRAIN_CLASSES = ['S Chair', 'Sleeper', '3AC', '2AC', '1AC'];
+
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString('en-GB', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    });
+  };
+
+  const onDateChange = (event: any, selectedDate?: Date) => {
+    setShowDatePicker(false);
+    if (selectedDate) {
+      if (datePickerMode === 'departure') {
+        setDepartureDate(selectedDate);
+        // If return date is before new departure date, reset it
+        if (returnDate < selectedDate) {
+          setReturnDate(selectedDate);
+        }
+      } else {
+        setReturnDate(selectedDate);
+      }
+    }
+  };
+
+  const openDatePicker = (mode: 'departure' | 'return') => {
+    setDatePickerMode(mode);
+    setShowDatePicker(true);
+  };
 
   const handleSwapLocations = () => {
     const temp = fromLocation;
@@ -46,7 +86,7 @@ export default function HomeScreen() {
                 <Text style={styles.userName}>Ranjan Rawat</Text>
               </View>
             </View>
-            <TouchableOpacity style={styles.notificationButton}>
+            <TouchableOpacity style={styles.notificationButton} onPress={() => router.push('/notifications')}>
               <Ionicons name="notifications-outline" size={24} color="#FFF" />
               <View style={styles.notificationBadge} />
             </TouchableOpacity>
@@ -106,32 +146,98 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Departure Date */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Departure Date</Text>
-            <View style={styles.inputWrapper}>
-              <Ionicons name="calendar-outline" size={20} color="#004D40" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                value={departureDate}
-                onChangeText={setDepartureDate}
-              />
-            </View>
+          {/* Date Selection Row */}
+          <View style={styles.dateRow}>
+            {/* Departure Date */}
+            <TouchableOpacity
+              style={[styles.inputGroup, tripType === 'Round Trip' ? styles.halfInput : styles.fullInput]}
+              onPress={() => openDatePicker('departure')}
+            >
+              <Text style={styles.label}>Departure Date</Text>
+              <View style={styles.inputWrapper}>
+                <Ionicons name="calendar-outline" size={20} color="#004D40" style={styles.inputIcon} />
+                <Text style={styles.input}>{formatDate(departureDate)}</Text>
+              </View>
+            </TouchableOpacity>
+
+            {/* Return Date (Conditional) */}
+            {tripType === 'Round Trip' && (
+              <TouchableOpacity
+                style={[styles.inputGroup, styles.halfInput]}
+                onPress={() => openDatePicker('return')}
+              >
+                <Text style={styles.label}>Return Date</Text>
+                <View style={styles.inputWrapper}>
+                  <Ionicons name="calendar-outline" size={20} color="#004D40" style={styles.inputIcon} />
+                  <Text style={styles.input}>{formatDate(returnDate)}</Text>
+                </View>
+              </TouchableOpacity>
+            )}
           </View>
+
+          {showDatePicker && (
+            <DateTimePicker
+              value={datePickerMode === 'departure' ? departureDate : returnDate}
+              mode="date"
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              onChange={onDateChange}
+              minimumDate={datePickerMode === 'return' ? departureDate : new Date()}
+            />
+          )}
 
           {/* Class */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Class</Text>
-            <View style={styles.inputWrapper}>
+            <TouchableOpacity
+              style={styles.inputWrapper}
+              onPress={() => setShowClassPicker(true)}
+            >
               <Ionicons name="grid-outline" size={20} color="#004D40" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                value={travelClass}
-                onChangeText={setTravelClass}
-              />
+              <Text style={styles.input}>{travelClass}</Text>
               <Ionicons name="chevron-down" size={20} color="#999" />
-            </View>
+            </TouchableOpacity>
           </View>
+
+          {/* Class Picker Modal */}
+          <Modal
+            transparent={true}
+            visible={showClassPicker}
+            animationType="fade"
+            onRequestClose={() => setShowClassPicker(false)}
+          >
+            <TouchableOpacity
+              style={styles.modalOverlay}
+              activeOpacity={1}
+              onPress={() => setShowClassPicker(false)}
+            >
+              <View style={styles.modalContent}>
+                <Text style={styles.modalTitle}>Select Class</Text>
+                {TRAIN_CLASSES.map((item) => (
+                  <TouchableOpacity
+                    key={item}
+                    style={[
+                      styles.classOption,
+                      travelClass === item && styles.selectedClassOption
+                    ]}
+                    onPress={() => {
+                      setTravelClass(item);
+                      setShowClassPicker(false);
+                    }}
+                  >
+                    <Text style={[
+                      styles.classOptionText,
+                      travelClass === item && styles.selectedClassOptionText
+                    ]}>
+                      {item}
+                    </Text>
+                    {travelClass === item && (
+                      <Ionicons name="checkmark" size={20} color="#004D40" />
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </TouchableOpacity>
+          </Modal>
 
           {/* Search Button */}
           <TouchableOpacity style={styles.searchButton} onPress={handleSearch}>
@@ -152,14 +258,14 @@ export default function HomeScreen() {
           {/* News Item (Single item for now) */}
           <View style={styles.newsCard}>
             <Image
-              source={{ uri: 'https://images.unsplash.com/photo-1474487548417-781cb714c2f0?auto=format&fit=crop&q=80&w=200' }} // Train image
+              source={{ uri: 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=800' }} // Reliable Train Image (Pixabay)
               style={styles.newsImage}
             />
             <View style={styles.newsContent}>
               <Text style={styles.newsHeadline} numberOfLines={2}>
                 Sundarban Express: Travel, Safety, and...
               </Text>
-              <Text style={styles.newsAuthor}>By Shafiq Khan • 21 Aug, 2025</Text>
+              <Text style={styles.newsAuthor}>By Ranjan Rawat • 21 Aug, 2025</Text>
             </View>
           </View>
         </View>
@@ -378,5 +484,57 @@ const styles = StyleSheet.create({
   newsAuthor: {
     fontSize: 10,
     color: '#999',
+  },
+  dateRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  fullInput: {
+    flex: 1,
+  },
+  halfInput: {
+    flex: 0.5,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    width: '80%',
+    backgroundColor: '#FFF',
+    borderRadius: 16,
+    padding: 20,
+    elevation: 5,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#004D40',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  classOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  selectedClassOption: {
+    backgroundColor: '#E0F2F1',
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    borderBottomWidth: 0,
+  },
+  classOptionText: {
+    fontSize: 16,
+    color: '#333',
+  },
+  selectedClassOptionText: {
+    fontWeight: 'bold',
+    color: '#004D40',
   },
 });

@@ -46,7 +46,7 @@ export default function SeatSelectionScreen() {
     const handleContinue = () => {
         if (selectedSeats.length === 0) return;
         router.push({
-            pathname: '/passenger-details',
+            pathname: '/(tabs)/passenger-details',
             params: { seats: selectedSeats.join(',') },
         });
     };

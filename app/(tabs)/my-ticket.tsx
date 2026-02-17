@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
     FlatList,
@@ -54,53 +55,48 @@ const tickets = [
         arrivalDate: '18 Jan, 2025',
         duration: '3h 45m',
         status: 'Completed'
+    },
+    {
+        id: '4',
+        trainName: 'Sundarban Express',
+        seatClass: 'AC Berth | B1',
+        fromCode: 'GAY',
+        fromName: 'Gaya',
+        toCode: 'DEL',
+        toName: 'Delhi',
+        departureTime: '10:00 AM',
+        departureDate: '12 Sep, 2025',
+        arrivalTime: '05:45 PM',
+        arrivalDate: '12 Sep, 2025',
+        duration: '7h 45m',
+        status: 'Ongoing'
+    },
+    {
+        id: '5',
+        trainName: 'Chitra Express',
+        seatClass: 'S Chair | C3',
+        fromCode: 'GAY',
+        fromName: 'Gaya',
+        toCode: 'DEL',
+        toName: 'Delhi',
+        departureTime: '06:30 PM',
+        departureDate: '01 Aug, 2025',
+        arrivalTime: '02:00 AM',
+        arrivalDate: '02 Aug, 2025',
+        duration: '7h 30m',
+        status: 'Cancelled'
     }
 ];
 
 export default function MyTicketScreen() {
-    const [activeTab, setActiveTab] = useState('Completed');
+    const router = useRouter(); // Initialize router
+    const [activeTab, setActiveTab] = useState('Ongoing'); // Default to Ongoing for visibility
 
     const tabs = ['Ongoing', 'Completed', 'Cancelled'];
 
     const filteredTickets = tickets.filter(t => t.status === activeTab);
 
-    const renderItem = ({ item }: { item: typeof tickets[0] }) => (
-        <View style={styles.ticketCard}>
-            <View style={styles.cardHeader}>
-                <Text style={styles.trainName}>{item.trainName}</Text>
-                <Text style={styles.seatClass}>{item.seatClass}</Text>
-            </View>
-            <View style={styles.routeRow}>
-                <View>
-                    <Text style={styles.stationCode}>{item.fromCode}</Text>
-                    <Text style={styles.stationName}>{item.fromName}</Text>
-                </View>
-                <View style={styles.routeIconContainer}>
-                    <View style={styles.dottedLine} />
-                    <View style={styles.trainIconWrapper}>
-                        <Ionicons name="train" size={16} color="#004D40" />
-                    </View>
-                </View>
-                <View>
-                    <Text style={styles.stationCode}>{item.toCode}</Text>
-                    <Text style={styles.stationName}>{item.toName}</Text>
-                </View>
-            </View>
-            <View style={styles.timeRow}>
-                <View>
-                    <Text style={styles.time}>{item.departureTime}</Text>
-                    <Text style={styles.date}>{item.departureDate}</Text>
-                </View>
-                <View style={styles.durationContainer}>
-                    <Text style={styles.duration}>Duration {item.duration}</Text>
-                </View>
-                <View>
-                    <Text style={styles.time}>{item.arrivalTime}</Text>
-                    <Text style={styles.date}>{item.arrivalDate}</Text>
-                </View>
-            </View>
-        </View>
-    );
+
 
     return (
         <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
@@ -127,7 +123,47 @@ export default function MyTicketScreen() {
 
             <FlatList
                 data={filteredTickets}
-                renderItem={renderItem}
+                renderItem={({ item }) => (
+                    <TouchableOpacity
+                        style={styles.ticketCard}
+                        onPress={() => router.push('/(tabs)/ticket-details')}
+                        activeOpacity={0.9}
+                    >
+                        <View style={styles.cardHeader}>
+                            <Text style={styles.trainName}>{item.trainName}</Text>
+                            <Text style={styles.seatClass}>{item.seatClass}</Text>
+                        </View>
+                        <View style={styles.routeRow}>
+                            <View>
+                                <Text style={styles.stationCode}>{item.fromCode}</Text>
+                                <Text style={styles.stationName}>{item.fromName}</Text>
+                            </View>
+                            <View style={styles.routeIconContainer}>
+                                <View style={styles.dottedLine} />
+                                <View style={styles.trainIconWrapper}>
+                                    <Ionicons name="train" size={16} color="#004D40" />
+                                </View>
+                            </View>
+                            <View>
+                                <Text style={styles.stationCode}>{item.toCode}</Text>
+                                <Text style={styles.stationName}>{item.toName}</Text>
+                            </View>
+                        </View>
+                        <View style={styles.timeRow}>
+                            <View>
+                                <Text style={styles.time}>{item.departureTime}</Text>
+                                <Text style={styles.date}>{item.departureDate}</Text>
+                            </View>
+                            <View style={styles.durationContainer}>
+                                <Text style={styles.duration}>Duration {item.duration}</Text>
+                            </View>
+                            <View>
+                                <Text style={styles.time}>{item.arrivalTime}</Text>
+                                <Text style={styles.date}>{item.arrivalDate}</Text>
+                            </View>
+                        </View>
+                    </TouchableOpacity>
+                )}
                 keyExtractor={item => item.id}
                 contentContainerStyle={styles.listContent}
                 showsVerticalScrollIndicator={false}

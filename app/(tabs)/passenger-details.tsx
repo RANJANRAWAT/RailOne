@@ -63,7 +63,7 @@ export default function PassengerDetailsScreen() {
     const handleContinue = () => {
         const passengersParam = encodeURIComponent(JSON.stringify(passengers));
         router.push({
-            pathname: '/booking-details',
+            pathname: '/(tabs)/booking-details',
             params: {
                 seats: selectedSeats.join(','),
                 passengers: passengersParam,
